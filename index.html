@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07060f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>RipZone</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+<meta name="apple-mobile-web-app-title" content="RipZone">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="testInv" class="tm-ribbon">TEST MODE</div>
+<div id="rzSplash" aria-hidden="true"><canvas id="rzsC"></canvas></div>
+<style>#rzSplash{position:fixed;inset:0;z-index:2147483000;background:#05060D;overflow:hidden;contain:strict;will-change:opacity}#rzsC{position:absolute;inset:0;width:100%;height:100%}</style>
+<script>(function(){ /* v0.9.16 Card Burst splash (brand option C): ~2.4 s, tap to skip, once per session */
+var el=document.getElementById('rzSplash'),done=false,res;window.RZ_SPLASH=new Promise(function(r){res=r});
+try{if(/[?&]nosplash/.test(location.search)||sessionStorage.getItem('rz.splash.shown')){el.remove();res();return}sessionStorage.setItem('rz.splash.shown','1')}catch(e){}
+function end(){if(done)return;done=true;window.__rzsDone=1;window.__rzsT1=performance.now();res();var a=el.animate([{opacity:1},{opacity:0}],{duration:320,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});a.onfinish=function(){el.remove()};setTimeout(function(){el.remove()},600)}
+el.addEventListener('pointerdown',end,{passive:true});addEventListener('ripzone:splashdone',end);setTimeout(end,3600);
+var s=document.createElement('script');s.src='splash/c/splash_c.js';s.onerror=end;document.body.appendChild(s);
+})();</script>
+<div id="app">
+  <header class="topbar">
+    <div class="brand" aria-label="RipZone"><img class="logo" src="img/brand/logo-icon.webp" alt="" width="30" height="30"><img class="wordmark" src="img/brand/logo-wordmark.webp" alt="RipZone" height="20"></div>
+    <div class="wallet">
+      <button class="bal usd" id="balChip" aria-label="Balance · add funds"><span id="balUSD">$0.00</span><em class="bal-plus">+</em></button>
+    </div>
+  </header>
+
+  <main id="views">
+    <!-- SHOP -->
+    <section class="view active" id="view-shop">
+      <div class="shop-head">
+        <div class="inv-pill"><b>📦 Real cards</b><small>USD prices · market values</small></div>
+        <button id="dailyBtn" class="daily"><span class="gift">🎁</span><span id="dailyTxt">Rewards</span><i class="dot"></i></button>
+      </div>
+      <div class="cat-bar" id="catBar" role="tablist" aria-label="Card category"></div>
+      <div class="hero" id="hero"></div>
+      <div class="pulls" aria-label="Recent big pulls"><div class="lp-head"><span class="tk-live"><i></i>LIVE</span><b>Recent big pulls</b><small id="pfCount"></small></div><div class="lp-win"><div class="lp-track" id="pfTrack"></div></div></div>
+      <div class="h2-tick" id="h2Tick" aria-live="off"></div>
+      <div class="carousel-wrap">
+        <div id="packRail" class="pack-rail"></div>
+      </div>
+      <div class="pack-dots" id="packDots"></div>
+      <div class="h2-info" id="h2Info"></div>
+      <div class="pack-info" id="packInfo"></div>
+      <div class="buybar" id="buyBar"></div>
+    </section>
+
+    <!-- COLLECTION -->
+    <section class="view" id="view-collection">
+      <div class="coll-head">
+        <div class="coll-title"><h2>Vault <span class="muted small" id="collHint" style="font-weight:700">· tap a card to sell, keep or ship</span></h2><button class="sel-toggle" id="selToggle">Select</button></div>
+        <div id="collFounder"></div>
+        <div class="coll-totals" id="collTotals"></div>
+        <div class="chips" id="collFilter">
+          <button data-f="all" class="on">All</button><button data-f="legendary">Legendary</button><button data-f="epic">Epic</button><button data-f="rare">Rare</button><button data-f="uncommon">Uncommon</button><button data-f="common">Common</button><button data-f="ship">Ship requests</button>
+        </div>
+      </div>
+      <div class="grid" id="collGrid"></div>
+      <p class="empty" id="collEmpty">Your Vault is empty. Cards you buy show up here.</p>
+      <div class="sel-bar" id="selBar"><div class="sel-info"><b id="selCount">0 selected</b><span id="selTotal">Tap cards to select</span><button class="sel-all" id="selAll">Select all</button></div><button class="cta ghost sel-ship" id="selShip" disabled>📦 Ship</button><button class="cta cash" id="selSell" disabled>Sell</button></div>
+    </section>
+
+    <!-- WALLET / ADD FUNDS (demo) -->
+    <section class="view" id="view-store">
+      <h2>Wallet</h2>
+      <div class="wallet-card"><small>Balance</small><b id="walletBal">$0.00</b>
+        <div class="w-split w3"><div><small>Deposits</small><b id="walletDep">$0.00</b><em>packs only</em></div><div class="cash"><small>Sell-back cash</small><b id="walletCash">$0.00</b><em>withdrawable</em></div><div class="cred"><small>Promo credit</small><b id="walletCred">$0.00</b><em>packs only</em></div></div>
+        <div class="w-btns"><button class="cta cash" id="addFundsBtn">＋ Add funds</button><button class="cta ghost" id="withdrawBtn">Withdraw</button></div>
+        <div class="kyc-row" id="kycRow"></div><span class="muted small" id="walletSub"></span></div>
+      <div class="bundles" id="bundles"></div>
+      <button class="ref-banner" data-nav="refer">🤝 <span><b>Invite friends: $5 credit each</b><small>Paid once they open 3 packs. They get a free Starter pack.</small></span>›</button>
+      <h3 class="w-h">Activity</h3>
+      <div class="tx-list" id="txList"></div>
+      <p class="fine">Packs use promo credit first, then deposits, then sell-back cash. Selling a card back pays 100% of its market value as withdrawable cash (ID check required, $6 minimum, $500/day). Deposits are never withdrawable. Payments by Coinflow, identity by Footprint (sandbox in this test build). <a href="#" data-nav="rules">Buyback Policy</a> · <a href="#" data-nav="kyc">KYC/AML</a> · <a href="#" data-nav="terms">Terms</a></p>
+    </section>
+
+    <!-- MORE -->
+    <section class="view" id="view-more">
+      <h2>More</h2>
+      <div class="menu">
+        <button data-nav="profile" id="profileBtn"><span>👤</span>Profile</button>
+        <button data-nav="refer" class="hl"><span>🤝</span>Refer friends · $5 credit each</button>
+        <button data-nav="rewards"><span>🎁</span>Daily streak &amp; free packs</button>
+        <button data-nav="how" class="hl2"><span>ℹ️</span>How RipZone works</button>
+        <button data-nav="store"><span>💵</span>Wallet · add funds</button>
+        <button data-nav="rules"><span>📜</span>Buyback &amp; shipping policy</button>
+        <button data-nav="terms"><span>⚖️</span>Terms of Use</button>
+        <button data-nav="privacy"><span>🔒</span>Privacy Policy</button>
+        <button data-nav="rg"><span>🧭</span>Responsible Use · limits, cool-off, self-exclusion</button>
+        <button data-nav="odds"><span>🎯</span>Official Odds · every pack</button>
+        <button data-nav="kyc"><span>🪪</span>KYC / AML Policy</button>
+        <button data-nav="support"><span>💬</span>Contact &amp; support</button>
+        <h3 class="st-h">Settings</h3>
+        <button id="soundBtn"><span>🔊</span><b id="soundTxt">Sound: On</b></button>
+        <button id="musicBtn"><span>🎵</span><b id="musicTxt">Music: On</b></button>
+        <button id="fxBtn"><span>✨</span><b id="fxTxt">Sound effects: On</b></button>
+        <button id="spinBtn"><span>🎡</span><b id="spinTxt">Pack picker: On</b></button>
+        <button id="pushBtn" hidden><span>🔔</span><b id="pushTxt">Enable notifications</b></button>
+        <button id="replayTut"><span>🎓</span>Replay tutorial</button>
+        <button id="resetBtn" class="danger"><span>↺</span>Reset test data</button>
+      </div>
+      <div class="legal-links"><a href="#" data-nav="how">How it works</a> · <a href="#" data-nav="rules">Buyback Policy</a> · <a href="#" data-nav="kyc">KYC/AML</a> · <a href="#" data-nav="terms">Terms</a> · <a href="#" data-nav="privacy">Privacy</a> · <a href="#" data-nav="rg">Responsible Use</a> · <a href="#" data-nav="odds">Official Odds</a> · <a href="#" data-nav="support">Support</a><br>18+ · ID verified · Not available in NV · Test mode: no real payments</div><p class="fine rz-ip">RipZone is an independent retailer of trading cards and is not affiliated with, sponsored or endorsed by The Pokémon Company, Nintendo, Creatures Inc. or GAME FREAK. Pokémon and card names and images are trademarks and © of their respective owners, used only to identify the authentic physical cards we sell.</p>
+      <p class="fine" id="srcNote"></p>
+    </section>
+
+    <section class="view" id="view-profile">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Profile</h2>
+      <div id="profileBody"></div>
+    </section>
+
+
+    <section class="view" id="view-rewards">
+      <h2>Rewards <span class="muted small" style="font-weight:700">· daily streak &amp; free packs</span></h2>
+      <div id="rewardsBody"></div>
+    </section>
+
+    <section class="view" id="view-refer">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Refer friends</h2>
+      <div id="referBody"></div>
+    </section>
+
+
+    <section class="view doc" id="view-rules">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Buyback Policy</h2><p class="draft-tag">DRAFT · PENDING ATTORNEY REVIEW. Not legal advice; not yet in effect.</p>
+      <p><b>1. What you buy.</b> Each pack is the purchase of one authentic, physical trading card from our serialized, insured inventory. The card you receive is assigned at checkout using the odds and card value ranges shown before you tap Buy. The card you buy is the card you receive.</p>
+      <p><b>2. Market value source.</b> Card values are current US-dollar market prices for the listed condition, sourced from TCGplayer market data (via pokemontcg.io) and PriceCharting sold listings; graded slabs use the sold price for that grader and grade. Each card shows its source and price date. Values may be higher or lower than the price you paid for the pack.</p>
+      <p><b>3. Price locked at pull.</b> The sell-back price is fixed at <span data-cfg="bb">100%</span> of the card's market value at the moment you receive it and is shown on the reveal screen and your receipt.</p>
+      <p><b>4. Selling back is optional.</b> You are never required to sell a card back. Sell-back proceeds go to your withdrawable balance. Deposits and promotional credit cannot be withdrawn; only sell-back proceeds can.</p>
+      <p><b>5. Shipping is always available.</b> Any card in your Vault can be shipped to you (insured flat fee $14.99 per shipment) after identity verification.</p>
+      <p><b>6. Withdrawing your balance.</b> Minimum $6.00; standard (free, 1–3 business days) or instant ($1.00); daily limit $500; ID verification required.</p>
+      <p><b>7. Vault hold.</b> Unshipped cards stay in your Vault for 5 days, then are sold back automatically at the locked sell-back price. Cards with a ship request are exempt. [Counsel to confirm.]</p>
+      <p><b>8. No secondary marketplace.</b> RipZone does not run a user-to-user marketplace or set resale prices; buyback is a fixed, optional offer.</p><p class="fine rz-ip">RipZone is an independent retailer of trading cards and is not affiliated with, sponsored or endorsed by The Pokémon Company, Nintendo, Creatures Inc. or GAME FREAK. Pokémon and card names and images are trademarks and © of their respective owners, used only to identify the authentic physical cards we sell.</p>
+    </section>
+
+    <section class="view doc" id="view-how">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>How RipZone works</h2>
+      <div class="how-grid">
+        <div class="how cash"><b><i class="coin usd"></i> Priced in US dollars</b><p>Add funds to buy packs. Optional buybacks are paid as Store Credit for more packs; Store Credit is never cashed out. No coins and no conversion.</p></div>
+        <div class="how ship"><b>📦 Real cards, three choices</b><p>Every pulled card is a real card valued at its current market price. <b>Keep</b> it in your Vault, request to have it <b>shipped</b> to you, or sell it back for <span data-cfg="bb">100%</span> of market value in store credit to you (flat fee, placeholder in this demo).</p></div>
+      </div>
+      <h3>The basics</h3>
+      <ul>
+        <li><b>Every pack shows its odds and value range before you buy.</b> Tap <b>Odds &amp; Rules</b> on any pack or on the reveal screen for exact odds, expected value, the guaranteed floor and the top card.</li>
+        <li><b>Expected value <span data-cfg="rtp">88%</span>.</b> The odds are set so the average market value of the card in a pack (every pack holds one) is <span data-cfg="rtp">88%</span> of its price. The value spreads (Normal, High, Max) change the spread, not the average. Every card is worth at least the pack's floor (10–40% of the price) in these modes. Normal: about half of pulls are worth the price or more (about 40% on the $1 and $2,500 packs). High: about 1 in 5 pulls are worth the price or more, with more top cards and more low-value cards. Max: a 10% chance of a Gold card worth 3× the price or more (about 5× on average), otherwise a card worth less than the price (about 0.4× on average). 50/50: Gold (about 43%) is a card worth 1.8–2.2× the price, Silver is a card worth 0.05–0.11× (<span data-cfg="fifty">90%</span> payback).</li>
+        <li><b>Card values are market prices.</b> Raw near-mint (ungraded) market prices from TCGplayer, Scryfall, optcgapi.com and SportsCardsPro; PSA 10 entries use the PSA 10 sold price and carry a label. Each card shows its source and price date.</li>
+        <li><b>Vault cards are held 5 days.</b> Ship a card to keep it. After 5 days, unshipped cards auto-sell at the <span data-cfg="bb">100%</span> buyback as Store Credit; each card shows a countdown.</li>
+        <li><b>Practice first:</b> new collectors get 3 free practice rips. They're scripted showcases, cost nothing and never change your balance.</li>
+        <li><b>18+ only.</b> Availability depends on where you live (to be set by counsel).</li>
+        <li><b>Buy responsibly.</b> Set spending, deposit and session limits or take a cool-off on the <a href="#" data-nav="rg">Responsible Use</a> page.</li>
+      </ul>
+      <div class="legal-links"><a href="#" data-nav="rules">Buyback Policy</a> · <a href="#" data-nav="kyc">KYC/AML</a> · <a href="#" data-nav="terms">Terms</a> · <a href="#" data-nav="privacy">Privacy</a> · <a href="#" data-nav="rg">Responsible Use</a></div>
+    </section>
+
+    <section class="view doc" id="view-privacy">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Privacy Policy</h2><p class="draft-tag">DRAFT · PENDING ATTORNEY REVIEW. Not legal advice; not yet in effect.</p>
+      <p><b>What we collect.</b> Account details (phone, username), date of birth, identity-verification result and reference from Footprint (we don't store your ID images or full SSN), location/IP checks used to confirm eligibility, shipping address (when you ship), payment references from Coinflow (no full card numbers), purchase records including locked odds and card serials, and responsible-use settings.</p>
+      <p><b>Why.</b> To verify age and identity, meet anti-money-laundering and fraud obligations, enforce state availability and self-exclusion, fulfil and ship cards, process deposits and withdrawals, and keep audit records.</p>
+      <p><b>Sharing.</b> Only with service providers that run the service (Footprint for ID, Coinflow for payments, Supabase/Cloudflare for hosting, our shipping carrier) and when required by law. We never sell personal data.</p>
+      <p><b>Retention.</b> Transaction, KYC and self-exclusion records are kept as long as required by law (typically 5 years); self-exclusion records are kept permanently so the lock can be enforced.</p>
+      <p><b>Your rights.</b> Request access, correction or deletion (subject to legal retention) at RipZoneApp@gmail.com. 18+ only; we don't knowingly collect data from minors.</p>
+      <p class="fine">Test build: data is stored on this device and KYC/payments are sandbox mocks.</p>
+    </section>
+
+    <section class="view doc" id="view-rg">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Responsible Use</h2>
+      <p>RipZone should be fun. Set your own limits below. They're stored on this device and enforced in the app (mock: no account or server yet). <b>Lowering a limit takes effect immediately; raising or removing one takes effect after 24 hours.</b></p>
+      <div id="rgBody"></div>
+      <h3>Tips</h3>
+      <ul><li>Only spend what fits your budget. The average card value of every pack is less than its price.</li><li>Take regular breaks. Set limits before you shop.</li><li>18+ only.</li><li>Need support? Call <a href="tel:18004264237">1-800-GAMBLER</a> or visit <a href="https://www.ncpgambling.org/help-treatment/" target="_blank" rel="noopener">ncpgambling.org</a> (National Council on Problem Gambling).</li></ul>
+    </section>
+
+    <section class="view doc" id="view-terms">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Terms of Use</h2><p class="draft-tag">DRAFT · PENDING ATTORNEY REVIEW. Not legal advice; not yet in effect.</p>
+      <p><b>1. Operator.</b> RipZone is operated by [RipZone LLC, Florida — formation pending], Ocala, FL. Contact RipZoneApp@gmail.com.</p>
+      <p><b>2. A store, not a contest.</b> RipZone is a retail store for physical trading cards. Each pack purchase is the purchase of one physical card. There is no contest, wager or game of skill or chance offered for consideration; you pay a stated price and receive a card, with odds and card value ranges disclosed before purchase. [Counsel to confirm characterization by state.]</p>
+      <p><b>3. Eligibility.</b> You must be 18 or older (or the age of majority where you live), verify your identity and age with a government ID before your first purchase, and be physically located in an eligible state. RipZone is not available in Nevada or other states listed in the app. One account per person. We may use location and IP data to confirm eligibility.</p>
+      <p><b>4. Odds and pricing.</b> The odds, card value ranges, average card value and top card for each pack are shown before you buy and locked at checkout. Your receipt records the locked odds and the serial number of the card you received. Animations do not affect the result.</p>
+      <p><b>5. Your cards.</b> Cards you buy are yours. Keep them in your Vault, ship them, or sell them back under the Buyback Policy.</p>
+      <p><b>6. Balance.</b> Deposits can only be used to buy packs and are not withdrawable. Sell-back proceeds are withdrawable subject to the limits in the Buyback Policy and KYC/AML Policy.</p>
+      <p><b>7. Responsible use.</b> You can set deposit and spending limits, take a cool-off, or permanently self-exclude. Self-exclusion is irreversible. Support: 1-800-GAMBLER, ncpgambling.org.</p>
+      <p><b>8. Prohibited conduct.</b> Multiple accounts, location spoofing, chargeback abuse, fraud, money laundering and use on behalf of others are prohibited and may result in account closure and forfeiture of promotional credit.</p>
+      <p><b>9. Disputes.</b> [DRAFT] Individual binding arbitration under [AAA/JAMS] consumer rules, seated in Marion County, Florida; class action waiver; 30-day opt-out. Small claims excepted.</p>
+      <p><b>10. Intellectual property.</b> Card names and images are shown only to identify the physical cards sold.</p><p class="fine rz-ip">RipZone is an independent retailer of trading cards and is not affiliated with, sponsored or endorsed by The Pokémon Company, Nintendo, Creatures Inc. or GAME FREAK. Pokémon and card names and images are trademarks and © of their respective owners, used only to identify the authentic physical cards we sell.</p>
+      <p><b>11. Changes; governing law.</b> Florida law [counsel to confirm]. We'll give notice in the app before material changes.</p>
+    </section>
+
+    <section class="view doc" id="view-kyc">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>KYC / AML Policy</h2><p class="draft-tag">DRAFT · PENDING ATTORNEY REVIEW. Not legal advice; not yet in effect.</p>
+      <p><b>Identity and age.</b> Every customer verifies name, date of birth (18+), address and the last 4 of their SSN, plus a government ID and selfie liveness check through Footprint, before their first purchase. Re-verification is required for shipping and withdrawals if details change.</p>
+      <p><b>Location.</b> Eligibility is checked by location/IP at signup and at every purchase and deposit; blocked states (Nevada at minimum) are enforced on our server.</p>
+      <p><b>Sources of funds.</b> Deposits are made through Coinflow with card/bank payments in the customer's own name. Deposits are never withdrawable; only sell-back proceeds may be withdrawn, to a verified account in the customer's name.</p>
+      <p><b>Monitoring.</b> Daily withdrawal limit ($500), minimum $6, velocity and pattern monitoring, sanctions/PEP screening via Footprint, and review of unusual activity (e.g. deposit-sellback-withdraw cycling without collecting). Suspicious activity may be reported as required by law.</p>
+      <p><b>Records.</b> KYC results, purchases with locked odds, sell-backs, shipments and withdrawals are kept for at least 5 years.</p>
+      <p><b>Money transmission.</b> [Counsel to confirm whether sell-back withdrawals require money-transmitter licensing or can rely on Coinflow as the licensed payout provider.]</p>
+    </section>
+
+    <section class="view doc" id="view-odds">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Official Odds</h2>
+      <p class="draft-tag">DRAFT · PENDING ATTORNEY REVIEW.</p><p>Exact chances and card value ranges for every pack and value spread, generated from the same odds the app uses for every purchase. The odds shown before you buy are locked at checkout and printed on your receipt with the card's serial number. Your card is determined the moment you purchase; animations do not affect the result. Normal, High and Max pay back 88% of the price in card market value on average; 50/50 pays back 90%. Every pack contains one physical card. Vault cards are held 5 days; unshipped cards are then sold back at the locked 100% sell-back price to your withdrawable balance.</p>
+      <div id="oddsAll"><p class="muted">Loading…</p></div>
+    </section>
+
+    <section class="view doc" id="view-support">
+      <button class="back" data-nav="more">‹ Back</button>
+      <h2>Contact &amp; Support</h2>
+      <p><b>Email:</b> <a href="mailto:RipZoneApp@gmail.com">RipZoneApp@gmail.com</a> · <b>Phone:</b> <a href="tel:+13526790053">352-679-0053</a> · Ocala, Florida</p>
+      <p>Questions about a pull, a ship request, Store Credit or your account: email us with your username and the card name. We reply within 2 business days.</p>
+      <p>To close your account or self-exclude, use <a href="#" data-nav="rg">Responsible Use</a> or email us.</p>
+    </section>
+  </main>
+  <div class="pd os" id="os" aria-hidden="true"><div class="pd-back" id="osBack"></div>
+    <div class="pd-panel" role="dialog" aria-modal="true" aria-label="Odds and card value range"><div class="pd-grab"></div><button class="pd-x" id="osX" aria-label="Close">✕</button>
+      <div class="pd-scroll" id="osScroll"><h3 class="os-h">Odds &amp; card value range</h3><div id="osSlot"></div></div><div class="os-foot"><button class="cta cash" id="osDone">Done</button></div></div></div>
+
+  <nav class="tabbar">
+    <button data-nav="shop" class="on"><span>🃏</span>Packs</button>
+    <button data-nav="collection"><span>🔐</span>Vault</button>
+    <button data-nav="rewards"><span>🎁</span>Rewards</button>
+    <button data-nav="store"><span>💵</span>Wallet</button>
+    <button data-nav="more"><span>☰</span>More</button>
+  </nav>
+</div>
+
+<!-- RIP / REVEAL STAGE -->
+<div id="stage" class="stage" aria-hidden="true">
+  <div class="stage-bg"></div>
+  <div class="dim" id="dim"></div>
+  <div class="rays"></div>
+  <div class="stage-hint" id="stageHint">Drag across the top to rip</div>
+  <div class="rip-area" id="ripArea"></div>
+  <div class="reveal" id="reveal">
+    <div class="reveal-stage"><div class="glow" id="rglow"></div><div class="reveal-rail" id="revealRail"></div></div>
+    <div class="reveal-panel" id="revealPanel"></div>
+  </div>
+  <canvas id="fx" class="fx"></canvas>
+  <div class="flash" id="flash"></div>
+  <button class="odds-link stage-odds" id="stageOdds">ⓘ Odds &amp; Rules</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="sheet" id="sheet"><div class="sheet-body" id="sheetBody"></div></div>
+  <div class="coach" id="coach" aria-live="polite"><div class="c-spot"></div><div class="c-tip"><div class="c-body"></div></div><button class="c-skip" id="cSkip">Skip tutorial</button></div>
+  <div class="onb" id="onb"></div>
+<div class="auth" id="auth"></div>
+  <div class="offer" id="offer"></div>
+<script src="js/compliance-config.js"></script>
+<script src="js/backend.js"></script>
+<script src="firebase-config.js"></script>
+<script src="js/sky.js"></script>
+<script src="js/app.js"></script>
+<script src="js/compliance.js"></script>
+<script src="js/inspect.js"></script>
+<script src="js/pwa.js" defer></script>
+</body>
+</html>
