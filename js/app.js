@@ -608,6 +608,17 @@ rail.addEventListener('pointerup', endDrag); rail.addEventListener('pointercance
 rail.addEventListener('pointerleave', () => { if (!drag) { tiltTX = tiltTY = 0; schedRail(); } });
 function nearestIdx() { const sl = rail.scrollLeft; let b = 0; slideCenters.forEach((c, i) => { if (Math.abs(c - sl - railHalf) < Math.abs(slideCenters[b] - sl - railHalf)) b = i; }); return b; }
 function snapTo(i) { rail.scrollTo({ left: slideCenters[i] - railHalf, behavior: reduceMotion ? 'auto' : 'smooth' }); }
+/* v0.11.2 desktop/tablet carousel input: mouse wheel / trackpad, arrow keys and on-screen arrows. Still at rest; it only moves on user input. */
+const railStep = d => { if (busy) return; const i = Math.max(0, Math.min(PACKS.length - 1, centerIdx + d)); if (i !== centerIdx) { snapTo(i); buzz(6); } };
+(() => { let wl = 0, acc = 0, wt = 0;
+  rail.addEventListener('wheel', e => { const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (!d) return; e.preventDefault(); const now = performance.now();
+    if (now - wt > 220) acc = 0; wt = now; acc += d; if (now - wl < 260 || Math.abs(acc) < 30) return; wl = now; railStep(acc > 0 ? 1 : -1); acc = 0; }, { passive: false });
+  document.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; if (!$('#view-shop').classList.contains('active') || document.body.classList.contains('ripping') || e.target.closest?.('input,select,textarea')
+      || document.querySelector('.sheet.open,.pd.open,.auth.on,.onb.on,.offer.on') || document.documentElement.classList.contains('drawer-open')) return; e.preventDefault(); railStep(e.key === 'ArrowRight' ? 1 : -1); });
+  const ar = document.createElement('div'); ar.className = 'rz-arrows'; ar.innerHTML = '<button class="rz-prev" aria-label="Previous pack">‹</button><button class="rz-next" aria-label="Next pack">›</button>';
+  rail.parentElement.append(ar); ar.firstChild.onclick = () => railStep(-1); ar.lastChild.onclick = () => railStep(1);
+  const upd = () => { ar.firstChild.disabled = centerIdx <= 0; ar.lastChild.disabled = centerIdx >= PACKS.length - 1; }; rail.addEventListener('scroll', () => requestAnimationFrame(upd), { passive: true }); setTimeout(upd, 500);
+})();
 // gyro parallax for the centered pack (where permitted)
 addEventListener('deviceorientation', e => { if (e.gamma == null) return; tiltTY = Math.max(-12, Math.min(12, e.gamma / 3)); tiltTX = Math.max(-10, Math.min(10, (e.beta - 45) / -4)); schedRail(); }, { passive: true });
 
@@ -781,7 +792,7 @@ const HOME2 = CONFIG.HOME_V2 && !/[?&]home=old/.test(location.search); let H2_SL
 function h2Layout(force) { // v0.9.15c: the carousel takes the leftover height; the centre pack scales to fill it (Triumph size), sides ~75% with ~20% visible at the edges
   if (!HOME2) return; const wrap = $('#view-shop .carousel-wrap'); if (!wrap || !wrap.clientHeight) return;
   const W = rail.clientWidth || innerWidth, Hh = wrap.clientHeight; if (force !== true && h2Layout.k === W + 'x' + Hh) return; h2Layout.k = W + 'x' + Hh;
-  H2_S = Math.max(.6, Math.min(Hh * .9 / 272, W * .64 / 172)); const pw = 172 * H2_S;
+  H2_S = Math.max(.6, Math.min(Hh * .9 / 272, W * .64 / 172, innerWidth >= 768 ? 2.3 : 9)); /* v0.11.2: cap pack size on big screens */ const pw = 172 * H2_S;
   H2_SLIDE = Math.round(W * .62); H2_PULL = H2_SLIDE - (W / 2 + .3 * .75 * pw);
   rail.style.setProperty('--h2slide', H2_SLIDE + 'px'); measureRail(); const i = Math.max(0, centerIdx); if (slideCenters[i] != null) rail.scrollLeft = slideCenters[i] - railHalf; updateRail();
 }
@@ -1487,7 +1498,7 @@ function openCard(uid) {
   const ss = $('#shShip'); if (ss) ss.onclick = () => shipForm(() => { x.ship = Date.now(); S.stats.shipReq++; save(); closeSheet(); renderCollection(); toast(`📦 ${c.name}: ship request Requested (demo)`); buzz(12); });
   const sl = $('#shSell'); if (sl) sl.onclick = () => { sellBack(c, sell, uid); S.coll = S.coll.filter(q => q.uid !== uid); S.stats.sold++; save(); renderWallet(true); closeSheet(); renderCollection(); toast(`${c.name} sold back · +${fmt(sell)} cash`); buzz(15); };
 }
-function sheet(html) { $('#sheetBody').innerHTML = html; $('#sheet').classList.add('open'); }
+function sheet(html) { const b = $('#sheetBody'); b.innerHTML = html; b.scrollTop = 0; $('#sheet').classList.add('open'); }
 function closeSheet() { $('#sheet').classList.remove('open', 'fx'); }
 $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
 
