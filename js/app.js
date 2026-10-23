@@ -877,7 +877,7 @@ async function startRip0(p, again) {
   await Promise.all(pulls.map(x => { const im = new Image(); im.src = BY_ID[x.id].img; return im.decode().catch(() => {}); }));
   if (again) await ripAgainTransition();
   // v0.9.12 pack picker: purely cosmetic. The card above is already decided and in the Vault; every pack in the ring holds it.
-  if (S.picker !== false && !reduceMotion) { const ok = await PackPicker.run(p); if (!ok) { delete S.pending; save(); busy = false; renderWallet(true); renderPackInfo(); toast('Your card is in your Vault'); return; } }
+  if (S.picker !== false && !reduceMotion) { const ok = await PackPicker.run(p); if (!ok) { delete S.pending; save(); busy = false; renderWallet(true); renderPackInfo(); setTimeout(() => toast('Your card is in your Vault'), 260); return; } } // v0.11.3: toast after the picker has faded (no overlap with its title)
   openStage(p, pulls, !!(S.picker !== false && !reduceMotion));
   return true;
 }
@@ -2321,6 +2321,33 @@ function hwBack(exit) { // v0.11.1: shared by Android back, Escape (web/PWA) and
     exit && exit();
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') hwBack(); });
+/* v0.11.3 keyboard: Space = Rip (shop Buy button, Buy-pack confirm, pack picker, tear stage) and Sell & Rip Again on the reveal.
+   Each press just triggers the visible button / the same auto-tear as a tap, so every check (funds, age/KYC, geo, limits, self-lock) still runs.
+   One action per physical press: key repeat ignored, a 900 ms lock, and nothing while animating, typing or with any other sheet/modal open. */
+(() => { let lockT = 0, held = false;
+  const vis = el => el && !el.disabled && el.offsetParent !== null;
+  document.addEventListener('keyup', e => { if (e.code === 'Space' || e.key === ' ') held = false; });
+  document.addEventListener('keydown', e => {
+    if (e.code !== 'Space' && e.key !== ' ') return;
+    if (e.target.closest?.('input,select,textarea,[contenteditable="true"]')) return;
+    const inSheet = $('#sheet').classList.contains('open'), pv = $('#pvBuy');
+    const otherModal = (inSheet && !vis(pv)) || document.querySelector('.pd.open,.auth.on,.onb.on,.offer.on') || document.documentElement.classList.contains('drawer-open');
+    if (otherModal) return;
+    e.preventDefault(); // no page scroll / no native button activation (prevents double fire on a focused button)
+    if (e.repeat || held) return; held = true;
+    const now = performance.now(); if (now < lockT) return;
+    const go = el => { if (!vis(el)) return false; lockT = now + 900; el.click(); return true; };
+    if (inSheet) return void go(pv);
+    const pp = document.querySelector('.pp #ppPick'); if (pp) return void go(pp);
+    if (stage.classList.contains('open')) {
+      if (R && !R.done && !R.auto && !R.flick && !R.active) { lockT = now + 900; autoTear(); return; }
+      if (!$('#reveal').classList.contains('on') || !REV || REV.running) return;
+      if (!REV.revealed[0]) { lockT = now + 900; REV.reveal(); return; } // same as tapping the card to flip it
+      go($('#sellAgainBtn'));
+      return; }
+    if ($('#view-shop').classList.contains('active') && !busy && !document.body.classList.contains('ripping')) go($('#buyBtn'));
+  });
+})();
 if (QA) window.__ripzone.back = () => hwBack();
 (function () { const Cap = window.Capacitor; if (!Cap?.isNativePlatform?.() || !Cap.registerPlugin) return; const App = Cap.registerPlugin('App');
   App.addListener('backButton', () => hwBack(() => App.exitApp())); })();
